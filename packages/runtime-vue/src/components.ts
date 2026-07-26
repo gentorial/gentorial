@@ -973,16 +973,33 @@ export const GentorialPreferences = defineComponent({
     }
 
     function finish(skip: boolean): void {
-      runtime?.setByokSession(
-        skip || !apiKey.value.trim()
-          ? undefined
-          : {
-              provider: provider.value,
-              apiKey: apiKey.value.trim(),
-              ...(model.value.trim() ? { model: model.value.trim() } : {}),
-              ...(baseUrl.value.trim() ? { baseUrl: baseUrl.value.trim() } : {})
-            }
-      )
+      if (!skip && apiKey.value.trim()) {
+        runtime?.setByokSession({
+          provider: provider.value,
+          apiKey: apiKey.value.trim(),
+          ...(model.value.trim() ? { model: model.value.trim() } : {}),
+          ...(baseUrl.value.trim() ? { baseUrl: baseUrl.value.trim() } : {})
+        })
+      } else if (skip) {
+        syncByokDraft()
+      }
+      completed.value = true
+      open.value = false
+    }
+
+    function syncByokDraft(): void {
+      const session = runtime?.byokSession.value
+      const nextProvider = session?.provider ?? 'openai'
+      const defaults = providerDefaults[nextProvider] ?? providerDefaults.custom!
+      provider.value = nextProvider
+      apiKey.value = session?.apiKey ?? ''
+      model.value = session?.model ?? defaults.model
+      baseUrl.value = session?.baseUrl ?? session?.endpoint ?? defaults.baseUrl
+    }
+
+    function clearSavedByok(): void {
+      runtime?.setByokSession(undefined)
+      syncByokDraft()
       completed.value = true
       open.value = false
     }
@@ -1100,9 +1117,7 @@ export const GentorialPreferences = defineComponent({
                 value: apiKey.value,
                 autocomplete: 'off',
                 spellcheck: false,
-                placeholder: runtime?.persistence.persistApiKey
-                  ? '保存在当前站点的浏览器存储中'
-                  : '仅保存在当前页面会话内存中',
+                placeholder: '保存在当前站点的浏览器存储中',
                 onInput: (event: Event) => {
                   apiKey.value = (event.currentTarget as HTMLInputElement).value
                 }
@@ -1131,11 +1146,20 @@ export const GentorialPreferences = defineComponent({
           h(
             'p',
             { class: 'gentorial-preferences__notice' },
-            runtime?.persistence.persistApiKey
-              ? '密钥仅保存在当前站点的浏览器存储中，不会写入静态产物或日志。公共设备使用后请点击“跳过”清除密钥。'
-              : '可跳过。浏览器直连密钥不会写入静态产物、localStorage 或日志。'
+            '密钥保存在当前站点的浏览器存储中，不会写入静态产物或日志。如需删除，请使用“清除已保存配置”。'
           ),
           h('div', { class: 'gentorial-preferences__actions' }, [
+            runtime?.byokSession.value
+              ? h(
+                  'button',
+                  {
+                    class: 'gentorial-preferences__secondary',
+                    type: 'button',
+                    onClick: clearSavedByok
+                  },
+                  '清除已保存配置'
+                )
+              : null,
             h(
               'button',
               {
@@ -1143,7 +1167,7 @@ export const GentorialPreferences = defineComponent({
                 type: 'button',
                 onClick: () => finish(true)
               },
-              '跳过'
+              runtime?.byokSession.value ? '取消' : '跳过'
             ),
             h(
               'button',
@@ -1163,6 +1187,7 @@ export const GentorialPreferences = defineComponent({
     }
 
     function openPreferences(): void {
+      syncByokDraft()
       step.value = 'preferences'
       completed.value = false
       open.value = true

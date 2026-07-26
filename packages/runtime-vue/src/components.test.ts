@@ -173,6 +173,12 @@ describe('GentorialPreferences', () => {
     const model = vnodeChildren(fields[1]!)[1]!
     const apiKey = vnodeChildren(fields[2]!)[1]!
     const baseUrl = vnodeChildren(fields[3]!)[1]!
+    expect(apiKey.props?.placeholder).toBe('保存在当前站点的浏览器存储中')
+    expect(
+      visibleVNodeText(
+        findVNode(byok, (candidate) => hasClass(candidate, 'gentorial-preferences__notice')) ?? null
+      )
+    ).toContain('如需删除，请使用“清除已保存配置”')
     invoke(apiKey, 'onInput', { currentTarget: { value: 'secret' } })
     invoke(model, 'onInput', { currentTarget: { value: 'local-model' } })
     invoke(baseUrl, 'onInput', {
@@ -192,6 +198,59 @@ describe('GentorialPreferences', () => {
       model: 'local-model',
       baseUrl: 'https://localhost:11434/v1'
     })
+  })
+
+  it('keeps saved BYOK on cancel and clears it only through the explicit action', () => {
+    const session = {
+      provider: 'openai',
+      apiKey: 'saved-secret',
+      model: 'saved-model',
+      baseUrl: 'https://example.test/v1'
+    }
+    const runtime = createGentorialRuntime({
+      generate: vi.fn(),
+      byokSession: session
+    })
+    const render = setupRender(GentorialPreferences, {}, runtime)
+    invoke(
+      findVNode(
+        render(),
+        (candidate) => candidate.props?.class === 'gentorial-preferences__primary'
+      )!,
+      'onClick'
+    )
+
+    const apiKey = findVNode(
+      render(),
+      (candidate) => candidate.type === 'input' && candidate.props?.type === 'password'
+    )!
+    invoke(apiKey, 'onInput', { currentTarget: { value: 'unsaved-secret' } })
+    const cancel = findVNode(
+      render(),
+      (candidate) => candidate.type === 'button' && visibleVNodeText(candidate) === '取消'
+    )!
+    invoke(cancel, 'onClick')
+    expect(runtime.byokSession.value).toEqual(session)
+
+    const clearRuntime = createGentorialRuntime({
+      generate: vi.fn(),
+      byokSession: session
+    })
+    const clearRender = setupRender(GentorialPreferences, {}, clearRuntime)
+    invoke(
+      findVNode(
+        clearRender(),
+        (candidate) => candidate.props?.class === 'gentorial-preferences__primary'
+      )!,
+      'onClick'
+    )
+    const clear = findVNode(
+      clearRender(),
+      (candidate) =>
+        candidate.type === 'button' && visibleVNodeText(candidate) === '清除已保存配置'
+    )!
+    invoke(clear, 'onClick')
+    expect(clearRuntime.byokSession.value).toBeUndefined()
   })
 
   it('preserves an existing BYOK session when continuing from preferences', () => {

@@ -41,6 +41,13 @@ describe('createGentorialProject', () => {
       scripts: {
         typecheck: 'tsc --noEmit'
       },
+      dependencies: {
+        '@gentorial/ai': '^0.4.1',
+        '@gentorial/core': '^0.2.0',
+        '@gentorial/engine-vitepress': '^0.2.0',
+        '@gentorial/runtime-vue': '^0.4.0',
+        '@gentorial/theme-default': '^0.2.2'
+      },
       devDependencies: {
         'markdown-it-mathjax3': expect.any(String),
         mermaid: expect.any(String)

@@ -34,7 +34,7 @@ Conventional documentation gives every learner the same explanation. General-pur
 - Browser BYOK adapters for OpenAI, Anthropic, Google, and OpenAI-compatible endpoints, with configurable model and Base URL.
 - Framework-neutral server generation adapter with JSON lessons, SSE Markdown, authorization, and cancellation propagation.
 - Server-managed provider credentials and shared generation-result caching keyed by course input, learner preferences, and a versioned server generation profile.
-- Memory-only handling of learner API keys.
+- Browser-local persistence of learner BYOK settings across visits.
 - LaTeX through VitePress MathJax support and lazy Mermaid rendering.
 - Interactive scaffolder with npm, pnpm, Yarn, and Bun support.
 - Accessible default theme with no `v-html` path for model output.
@@ -189,7 +189,7 @@ Gentorial does not judge whether generated content is correct and does not expos
 
 Runtime Markdown uses VitePress-compatible CommonMark structure and supports headings, paragraphs, emphasis, links, lists, blockquotes, code fences, and `mermaid` fences. Author-defined VitePress containers are intentionally outside the AI generation contract.
 
-BYOK is learner-controlled and opt-in. Keys entered in the default UI are kept only in the current page's memory and are sent directly to the selected provider. Do not embed an author's production key in a browser bundle; use a server-side or local relay for managed credentials.
+BYOK is learner-controlled and opt-in. The default UI stores the provider, model, Base URL, and API key in the current site's `localStorage`, restores them on later visits, and sends requests directly to the selected provider. Skipping setup never deletes an existing configuration; removal requires the explicit clear action. Credentials are not written into the site bundle or Gentorial logs. Do not embed an author's production key in a browser bundle; use a server-side or local relay for managed credentials.
 
 Server-managed generation can use `createProviderGenerator` with a framework-neutral generation handler. Configure the handler's shared cache with a versioned namespace covering provider, model, generation parameters, prompt revision, and output schema. The complete course input and learner profile are part of the cache key. Browser BYOK must be selected before the server generator, so personal credentials neither read nor write the server cache.
 

@@ -19,7 +19,7 @@ app.use(createGentorialRuntime({
 
 运行时默认在发起追问前拒绝超过 20 次追问或序列化后超过 120,000 字符的当前路径，不会静默裁剪祖先上下文，也不会改变已保存的树。可通过 `contextBudget: { maxFollowUps, maxCharacters }` 调整，或用 `contextBudget: false` 关闭浏览器侧保护；托管服务端仍独立执行自己的硬限制。
 
-新的页面集成由两个组件组成：把 `GentorialGenerateTrigger` 放在所解释作者段落的行内末尾，把 `GentorialGeneratedRegion` 放在作者原文之后。两者只通过稳定的生成 ID 关联；重新生成会替换旧结果，取消或过期请求不会覆盖新结果。`GentorialPreferences` 使用与门户一致的两步流程：先选择内容偏好，再选择可跳过的 BYOK；BYOK 可配置提供方、密钥、模型和 Base URL，且密钥只保存在当前页面的内存中。
+新的页面集成由两个组件组成：把 `GentorialGenerateTrigger` 放在所解释作者段落的行内末尾，把 `GentorialGeneratedRegion` 放在作者原文之后。两者只通过稳定的生成 ID 关联；重新生成会替换旧结果，取消或过期请求不会覆盖新结果。`GentorialPreferences` 使用与门户一致的两步流程：先选择内容偏好，再选择可跳过的 BYOK；BYOK 的提供方、密钥、模型和 Base URL 会统一保存在当前站点的 `localStorage` 中，并在以后访问时自动恢复。“跳过”或“取消”只关闭设置，删除必须使用独立的“清除已保存配置”操作。
 
 默认结果区只顺序渲染当前学习路径上的 `GeneratedLesson` blocks，不显示来源标签、角色、问题或等待提示。讲解出现后，末尾常驻一个带“继续追问…” placeholder 的单行输入和“发送”按钮，不依赖点击教程正文来唤起。Enter 或按钮提交，Escape 取消活动追问并清空草稿；成功回答通过 `LessonBlockRenderer` 插入输入框上方，用户问题不进入可见结果。首次请求等待期间结果区为空；生成或追问失败时显示错误，同时保留作者原文和已有合法结果。`fallback` 与错误状态也保留在运行时，供自定义界面使用。
 

@@ -88,7 +88,6 @@ export type GentorialStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem
 export type GentorialPersistenceOptions = {
   key: string
   storage?: GentorialStorage
-  persistApiKey?: boolean
 }
 
 export type GentorialContextBudget = {
@@ -104,7 +103,6 @@ export type GentorialRuntime = Plugin & {
   readonly byokSession: Ref<GentorialByokSession | undefined>
   readonly persistence: {
     readonly enabled: boolean
-    readonly persistApiKey: boolean
   }
   readonly allowUnsafeHtml: boolean
   register(registration: GentorialRegistration): () => void
@@ -166,6 +164,33 @@ const defaultLearnerProfile: LearnerProfile = {
   detail: 'balanced',
   tone: 'neutral',
   narrative: 'direct'
+}
+
+const byokStorageKey = 'gentorial:byok:v1'
+
+function parsePersistedByokSession(value: unknown): GentorialByokSession | undefined {
+  if (!value || typeof value !== 'object') return undefined
+
+  const provider = Reflect.get(value, 'provider')
+  const apiKey = Reflect.get(value, 'apiKey')
+  const model = Reflect.get(value, 'model')
+  const baseUrl = Reflect.get(value, 'baseUrl')
+  const endpoint = Reflect.get(value, 'endpoint')
+  if (
+    typeof provider !== 'string' ||
+    typeof apiKey !== 'string' ||
+    (model !== undefined && typeof model !== 'string') ||
+    (baseUrl !== undefined && typeof baseUrl !== 'string') ||
+    (endpoint !== undefined && typeof endpoint !== 'string')
+  ) return undefined
+
+  return {
+    provider,
+    apiKey,
+    ...(model !== undefined ? { model } : {}),
+    ...(baseUrl !== undefined ? { baseUrl } : {}),
+    ...(endpoint !== undefined ? { endpoint } : {})
+  }
 }
 
 export const gentorialRuntimeKey: InjectionKey<GentorialRuntime> = Symbol('gentorial-runtime')
@@ -314,6 +339,7 @@ export function createGentorialRuntime(options: GentorialRuntimeOptions): Gentor
   const persistence = options.persistence
   const persistedGenerations = new Map<string, PersistedGenerationState>()
   let persistentStorage: GentorialStorage | undefined
+  let byokStorage: GentorialStorage | undefined
   const contextBudget = options.contextBudget === false
     ? undefined
     : {
@@ -339,7 +365,6 @@ export function createGentorialRuntime(options: GentorialRuntimeOptions): Gentor
       const saved = JSON.parse(raw) as {
         schemaVersion?: unknown
         learnerProfile?: unknown
-        byokSession?: unknown
         generations?: unknown
       }
       if (saved.schemaVersion !== '1') return
@@ -348,15 +373,6 @@ export function createGentorialRuntime(options: GentorialRuntimeOptions): Gentor
           ...defaultLearnerProfile,
           ...(saved.learnerProfile as LearnerProfile)
         }
-      }
-      if (
-        persistence.persistApiKey &&
-        saved.byokSession &&
-        typeof saved.byokSession === 'object' &&
-        typeof Reflect.get(saved.byokSession, 'provider') === 'string' &&
-        typeof Reflect.get(saved.byokSession, 'apiKey') === 'string'
-      ) {
-        byokSession.value = { ...(saved.byokSession as GentorialByokSession) }
       }
       if (saved.generations && typeof saved.generations === 'object') {
         for (const [id, candidate] of Object.entries(saved.generations)) {
@@ -401,6 +417,66 @@ export function createGentorialRuntime(options: GentorialRuntimeOptions): Gentor
     }
   }
 
+  function resolveByokStorage(): GentorialStorage | undefined {
+    if (typeof window === 'undefined') return undefined
+    try {
+      return window.localStorage
+    } catch {
+      return undefined
+    }
+  }
+
+  function restoreByokSession(): void {
+    const storage = resolveByokStorage()
+    if (!storage) return
+    byokStorage = storage
+
+    try {
+      const raw = storage.getItem(byokStorageKey)
+      if (!raw) return
+      const saved = JSON.parse(raw) as {
+        schemaVersion?: unknown
+        session?: unknown
+      }
+      const session = saved.schemaVersion === '1'
+        ? parsePersistedByokSession(saved.session)
+        : undefined
+      if (!session) {
+        storage.removeItem(byokStorageKey)
+        return
+      }
+      byokSession.value = session
+    } catch {
+      try {
+        storage.removeItem(byokStorageKey)
+      } catch {
+        // Browser storage is unavailable; the current in-memory session remains usable.
+      }
+    }
+  }
+
+  function persistByokSession(): void {
+    const storage = byokStorage ?? resolveByokStorage()
+    if (!storage) return
+    byokStorage = storage
+
+    try {
+      if (!byokSession.value) {
+        storage.removeItem(byokStorageKey)
+        return
+      }
+      storage.setItem(
+        byokStorageKey,
+        JSON.stringify({
+          schemaVersion: '1',
+          session: byokSession.value
+        })
+      )
+    } catch {
+      // Browser storage can be unavailable in privacy modes; the current session still works.
+    }
+  }
+
   function persistRuntimeState(): void {
     if (!persistence) return
     const storage = persistentStorage ?? resolvePersistentStorage()
@@ -413,10 +489,7 @@ export function createGentorialRuntime(options: GentorialRuntimeOptions): Gentor
         JSON.stringify({
           schemaVersion: '1',
           learnerProfile: learnerProfile.value,
-          generations: Object.fromEntries(persistedGenerations),
-          ...(persistence.persistApiKey && byokSession.value
-            ? { byokSession: byokSession.value }
-            : {})
+          generations: Object.fromEntries(persistedGenerations)
         })
       )
     } catch {
@@ -425,6 +498,7 @@ export function createGentorialRuntime(options: GentorialRuntimeOptions): Gentor
   }
 
   restorePreferences()
+  restoreByokSession()
 
   function generationContext(signal: AbortSignal): RuntimeGenerationContext {
     return {
@@ -715,8 +789,7 @@ export function createGentorialRuntime(options: GentorialRuntimeOptions): Gentor
     learnerProfile,
     byokSession,
     persistence: {
-      enabled: Boolean(persistence),
-      persistApiKey: Boolean(persistence?.persistApiKey)
+      enabled: Boolean(persistence)
     },
     allowUnsafeHtml: options.allowUnsafeHtml === true,
     register(registration) {
@@ -768,10 +841,11 @@ export function createGentorialRuntime(options: GentorialRuntimeOptions): Gentor
     },
     setByokSession(session) {
       byokSession.value = session ? { ...session } : undefined
-      persistRuntimeState()
+      persistByokSession()
     },
     install(app: App) {
       if (!persistentStorage) restorePreferences()
+      if (!byokStorage) restoreByokSession()
       app.provide(gentorialRuntimeKey, runtime)
     }
   }

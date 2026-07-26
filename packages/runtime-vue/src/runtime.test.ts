@@ -183,12 +183,11 @@ describe('createGentorialRuntime', () => {
     expect(generate.mock.calls[0]?.[0].learner).toEqual(runtime.learnerProfile.value)
   })
 
-  it('restores persisted learner preferences and explicitly persisted BYOK credentials', () => {
+  it('restores persisted learner preferences', () => {
     const storage = memoryStorage()
     const persistence = {
       key: 'gentorial:test:v1',
-      storage,
-      persistApiKey: true
+      storage
     }
     const first = createGentorialRuntime({ generate: vi.fn(), persistence })
     first.setLearnerProfile({
@@ -196,13 +195,6 @@ describe('createGentorialRuntime', () => {
       tone: 'conversational',
       narrative: 'timeline'
     })
-    first.setByokSession({
-      provider: 'custom',
-      apiKey: 'persisted-secret',
-      model: 'local-model',
-      baseUrl: 'http://localhost:11434/v1'
-    })
-
     const restored = createGentorialRuntime({ generate: vi.fn(), persistence })
 
     expect(restored.learnerProfile.value).toEqual({
@@ -210,17 +202,56 @@ describe('createGentorialRuntime', () => {
       tone: 'conversational',
       narrative: 'timeline'
     })
-    expect(restored.byokSession.value).toEqual({
-      provider: 'custom',
-      apiKey: 'persisted-secret',
-      model: 'local-model',
-      baseUrl: 'http://localhost:11434/v1'
-    })
+    expect(restored.byokSession.value).toBeUndefined()
+  })
 
-    restored.setByokSession(undefined)
-    const cleared = createGentorialRuntime({ generate: vi.fn(), persistence })
-    expect(cleared.byokSession.value).toBeUndefined()
-    expect(cleared.learnerProfile.value.detail).toBe('deep')
+  it('always restores BYOK credentials from browser storage and clears them explicitly', () => {
+    const storage = memoryStorage()
+    vi.stubGlobal('window', { localStorage: storage })
+
+    try {
+      const first = createGentorialRuntime({ generate: vi.fn() })
+      first.setByokSession({
+        provider: 'custom',
+        apiKey: 'persisted-secret',
+        model: 'local-model',
+        baseUrl: 'http://localhost:11434/v1'
+      })
+
+      const restored = createGentorialRuntime({ generate: vi.fn() })
+      expect(restored.byokSession.value).toEqual({
+        provider: 'custom',
+        apiKey: 'persisted-secret',
+        model: 'local-model',
+        baseUrl: 'http://localhost:11434/v1'
+      })
+
+      restored.setByokSession(undefined)
+      expect(createGentorialRuntime({ generate: vi.fn() }).byokSession.value).toBeUndefined()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('keeps BYOK usable in memory when browser storage is unavailable', () => {
+    vi.stubGlobal('window', Object.defineProperty({}, 'localStorage', {
+      get() {
+        throw new Error('storage unavailable')
+      }
+    }))
+
+    try {
+      const runtime = createGentorialRuntime({ generate: vi.fn() })
+      expect(() => {
+        runtime.setByokSession({
+          provider: 'openai',
+          apiKey: 'memory-only-secret'
+        })
+      }).not.toThrow()
+      expect(runtime.byokSession.value?.apiKey).toBe('memory-only-secret')
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it('restores successful generated lessons and follow-up context after a reload', async () => {
@@ -262,7 +293,7 @@ describe('createGentorialRuntime', () => {
     ])
   })
 
-  it('forwards the in-memory BYOK session only through generation context', async () => {
+  it('forwards the current BYOK session only through generation context', async () => {
     const generate = vi.fn().mockResolvedValue(lesson('byok'))
     const runtime = createGentorialRuntime({ generate })
     runtime.register({ generate: spec, concepts: [concept] })

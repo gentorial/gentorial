@@ -1,5 +1,14 @@
 # @gentorial/docs
 
+## 0.0.3
+
+### Patch Changes
+
+- Updated dependencies
+  - @gentorial/runtime-vue@0.4.0
+  - @gentorial/ai@0.4.1
+  - @gentorial/theme-default@0.2.2
+
 ## 0.0.2
 
 ### Patch Changes

@@ -7,6 +7,13 @@ test.beforeEach(async ({ page }) => {
   await dialog.getByRole('button', { name: '继续' }).click()
   await dialog.getByLabel('API key').fill('e2e-test-key')
   await dialog.getByRole('button', { name: '保存并继续' }).click()
+  await page.reload()
+
+  await page.getByRole('button', { name: '个性化设置' }).click()
+  const restoredDialog = page.getByRole('dialog', { name: '个性化设置' })
+  await restoredDialog.getByRole('button', { name: '继续' }).click()
+  await expect(restoredDialog.getByLabel('API key')).toHaveValue('e2e-test-key')
+  await restoredDialog.getByRole('button', { name: '取消' }).click()
 })
 
 test('generates a lesson and answers a constrained follow-up', async ({ page }) => {

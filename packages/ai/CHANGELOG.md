@@ -1,5 +1,13 @@
 # @gentorial/ai
 
+## 0.4.1
+
+### Patch Changes
+
+- Persist the complete browser BYOK configuration in site-local browser storage by default and restore it on later visits. Skipping or cancelling configuration now preserves saved credentials, while deletion is available only through an explicit clear action.
+
+  Refresh generated project dependency versions so new courses receive the persistent BYOK runtime.
+
 ## 0.4.0
 
 ### Minor Changes

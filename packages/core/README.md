@@ -15,7 +15,8 @@ export default defineCourse({
   contentDir: 'content',
   generation: {
     mode: 'hybrid',
-    defaultLocale: 'zh-CN'
+    defaultLocale: 'zh-CN',
+    globalPrompt: '先给出结论，再循序渐进地解释。'
   },
   rendering: {
     allowUnsafeHtml: false
@@ -27,8 +28,10 @@ export default defineCourse({
 })
 ```
 
+`generation.globalPrompt` 是可选的课程级系统指令，会进入每次初始生成和后续问答。它适合统一讲解风格、顺序和示例偏好，但不能解除章节范围、概念锚点、安全边界与输出协议的约束。
+
 `rendering.allowUnsafeHtml` 默认应保持为 `false`。设为 `true` 时，运行时可渲染模型返回的原始 HTML；站点需要自行承担同源脚本与数据访问风险。
 
-一次生成会分别记录作者限定的 `scope`、标题触发器、`after-source` 输出目标和学习者表达偏好。生成结果必须在 `grounding.sourceIds` 中声明对应章节来源；概念锚点仍通过 `grounding.conceptIds` 独立校验。
+一次生成会分别记录作者限定的 `scope`、作者内容末尾的触发位置、`after-source` 输出目标和学习者表达偏好。生成结果必须在 `grounding.sourceIds` 中声明对应章节来源；概念锚点仍通过 `grounding.conceptIds` 独立校验。
 
 `LessonConversationTurn` 用于记录结果上的深入问答。学习者消息是非空的 `content`，助手消息始终保存完整、可校验的 `GeneratedLesson`，因此后续回答与初始结果使用同一套安全输出协议。

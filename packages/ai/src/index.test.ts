@@ -13,7 +13,11 @@ const course = defineCourse({
   title: 'C 语言教程',
   lang: 'zh-CN',
   contentDir: 'content',
-  generation: { mode: 'hybrid', defaultLocale: 'zh-CN' },
+  generation: {
+    mode: 'hybrid',
+    defaultLocale: 'zh-CN',
+    globalPrompt: '所有讲解先给结论，再逐步解释；术语首次出现时给出定义。'
+  },
   accuracy: {
     policies: ['概念锚点不可被反转'],
     standards: ['ISO C17']
@@ -85,6 +89,9 @@ describe('compileGenerationPrompt', () => {
     expect(prompt.input).toContain('`switch` 根据离散结果选择分支。')
     expect(prompt.input).toContain('准备考试')
     expect(prompt.input).toContain('comparison')
+    expect(prompt.system).toContain(
+      '所有讲解先给结论，再逐步解释；术语首次出现时给出定义。'
+    )
     expect(prompt.system).toContain('grounding.sourceIds')
   })
 
@@ -195,6 +202,9 @@ describe('createBrowserByokGenerator', () => {
     }
     expect(body.stream).toBe(true)
     expect(body.messages[0]?.content).toContain('标准 Markdown')
+    expect(body.messages[0]?.content).toContain(
+      '所有讲解先给结论，再逐步解释；术语首次出现时给出定义。'
+    )
     expect(body.messages[0]?.content).toContain('不要输出 JSON、HTML、脚本、协议字段或自定义容器')
   })
 })

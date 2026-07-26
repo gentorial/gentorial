@@ -37,8 +37,8 @@ describe('parseLessonSource', () => {
         source: { file: 'content/index.md', line: 1, column: 1 }
       },
       trigger: {
-        type: 'heading',
-        source: { file: 'content/index.md', line: 1, column: 1 }
+        type: 'source-end',
+        source: { file: 'content/index.md', line: 7, column: 1 }
       },
       output: { placement: 'after-source', mode: 'replace' }
     })
@@ -81,8 +81,8 @@ describe('parseLessonSource', () => {
           source: { file: 'content/c.md', line: 8, column: 1 }
         },
         trigger: {
-          type: 'heading',
-          source: { file: 'content/c.md', line: 8, column: 1 }
+          type: 'source-end',
+          source: { file: 'content/c.md', line: 14, column: 1 }
         },
         output: { placement: 'after-source', mode: 'replace' }
       })

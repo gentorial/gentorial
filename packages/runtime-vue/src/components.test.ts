@@ -63,7 +63,13 @@ function vnodeChildren(vnode: VNode): VNode[] {
 
 function invoke(
   vnode: VNode,
-  event: 'onClick' | 'onChange' | 'onInput' | 'onKeydown',
+  event:
+    | 'onClick'
+    | 'onChange'
+    | 'onInput'
+    | 'onKeydown'
+    | 'onMouseenter'
+    | 'onMouseleave',
   payload?: unknown
 ): void {
   const listener = vnode.props?.[event]
@@ -186,6 +192,32 @@ describe('GentorialPreferences', () => {
       model: 'local-model',
       baseUrl: 'https://localhost:11434/v1'
     })
+  })
+
+  it('preserves an existing BYOK session when continuing from preferences', () => {
+    const runtime = createGentorialRuntime({
+      generate: vi.fn(),
+      byokSession: {
+        provider: 'openai',
+        apiKey: 'existing-secret',
+        model: 'existing-model',
+        baseUrl: 'https://example.test/v1'
+      }
+    })
+    const render = setupRender(GentorialPreferences, {}, runtime)
+    const continueButton = findVNode(
+      render(),
+      (candidate) => candidate.props?.class === 'gentorial-preferences__primary'
+    )!
+
+    invoke(continueButton, 'onClick')
+    const byok = render()
+    const fields = vnodeChildren(vnodeChildren(byok)[1]!)
+
+    expect(vnodeChildren(fields[0]!)[1]?.props?.value).toBe('openai')
+    expect(vnodeChildren(fields[1]!)[1]?.props?.value).toBe('existing-model')
+    expect(vnodeChildren(fields[2]!)[1]?.props?.value).toBe('existing-secret')
+    expect(vnodeChildren(fields[3]!)[1]?.props?.value).toBe('https://example.test/v1')
   })
 })
 
@@ -335,11 +367,18 @@ describe('GentorialGeneratedRegion', () => {
       { type: 'paragraph', text: '因为 C 延续了 B 的系统编程目标。' }
     ])
     expect(findVNode(region, (candidate) => candidate.type === 'input')).toBeDefined()
-    expect(visibleVNodeText(region)).toBe('学习路径发送')
+    expect(visibleVNodeText(region)).toBe('发送')
 
-    invoke(findVNode(region, (candidate) =>
+    const pathToggle = findVNode(region, (candidate) =>
       hasClass(candidate, 'gentorial-conversation-path__toggle')
-    )!, 'onClick')
+    )
+    const pathFloating = findVNode(region, (candidate) =>
+      hasClass(candidate, 'gentorial-conversation-path__floating')
+    )
+    expect(pathToggle?.props?.['aria-label']).toBe('学习路径')
+    expect(visibleVNodeText(pathToggle ?? null)).toBe('')
+
+    invoke(pathFloating!, 'onMouseenter')
     region = render()
     const points = findVNodes(region, (candidate) =>
       hasClass(candidate, 'gentorial-conversation-path__point')
@@ -355,6 +394,13 @@ describe('GentorialGeneratedRegion', () => {
       '为什么 B 之后会出现 C？'
     ])
     expect(points[1]?.props?.['aria-current']).toBe('step')
+
+    invoke(findVNode(region, (candidate) =>
+      hasClass(candidate, 'gentorial-conversation-path__floating')
+    )!, 'onMouseleave')
+    expect(findVNodes(render(), (candidate) =>
+      hasClass(candidate, 'gentorial-conversation-path__point')
+    )).toHaveLength(0)
   })
 
   it('submits with Enter and cancels a pending follow-up with Escape', async () => {
@@ -436,7 +482,7 @@ describe('GentorialGeneratedRegion', () => {
 
     region = render()
     expect(hasClass(region, 'gentorial-generated-region--error')).toBe(true)
-    expect(visibleVNodeText(region)).toBe('provider failed visibly学习路径发送')
+    expect(visibleVNodeText(region)).toBe('provider failed visibly发送')
     const errorMessage = findVNode(region, (candidate) =>
       hasClass(candidate, 'gentorial-generated-region__follow-up-error')
     )

@@ -48,6 +48,7 @@ describe('createGentorialProject', () => {
     })
     expect(courseSource).toContain("title: '我的课程'")
     expect(courseSource).toContain('allowUnsafeHtml: true')
+    expect(courseSource).toContain('globalPrompt:')
     expect(themeSource).not.toContain('createMockGenerator')
     expect(themeSource).toContain('尚未配置生成服务')
     expect(themeSource).toContain('createGentorialRuntime')

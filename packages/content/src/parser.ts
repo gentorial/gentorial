@@ -448,8 +448,8 @@ export function parseLessonSource(
         source: heading.source
       },
       trigger: {
-        type: 'heading',
-        source: heading.source
+        type: 'source-end',
+        source: start.source
       },
       output: {
         placement: 'after-source',

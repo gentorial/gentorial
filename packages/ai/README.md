@@ -13,9 +13,9 @@ const generator = createBrowserByokGenerator({
 const lesson = await generator.generate(input)
 ```
 
-具体模型 SDK 不进入该包的核心路径；提供方格式由 `ProviderAdapter` 处理，请求去向由 `AITransport` 处理。概念、章节范围和学习者偏好会进入提示，但框架不判断生成内容是否正确，也不提供内容校验钩子。
+具体模型 SDK 不进入该包的核心路径；提供方格式由 `ProviderAdapter` 处理，请求去向由 `AITransport` 处理。概念、章节范围、学习者偏好以及可选的 `course.generation.globalPrompt` 会进入提示，但框架不判断生成内容是否正确，也不提供内容校验钩子。
 
-将 `LessonConversationTurn[]` 放入 `GenerationInput.conversation` 即可围绕已有结果继续提问。每次后续回答都会收到原任务的章节范围、概念锚点和课程准确性策略。
+将 `LessonConversationTurn[]` 放入 `GenerationInput.conversation` 即可围绕已有结果继续提问。每次后续回答都会收到原任务的章节范围、概念锚点、课程准确性策略和全局提示词。
 
 默认包还提供 `createBrowserByokGenerator`，支持 OpenAI、Anthropic、Google 和 OpenAI-compatible REST 端点。每个提供方都可以覆盖 `model` 与 `baseUrl`；适配器会在 Base URL 后自动补齐对应的请求路径。旧的完整 `endpoint` 参数暂时保留兼容。
 

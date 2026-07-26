@@ -8,7 +8,8 @@ export default defineCourse({
   contentDir: 'content',
   generation: {
     mode: 'hybrid',
-    defaultLocale: 'zh-CN'
+    defaultLocale: 'zh-CN',
+    globalPrompt: '使用清晰、循序渐进的中文讲解；首次出现的 Gentorial 专有名词应结合当前章节给出简短定义。'
   },
   rendering: {
     allowUnsafeHtml: false

@@ -91,7 +91,7 @@ my-course/
 - `content/` contains the author-written tutorial.
 - `docs/.vitepress/config.ts` is a normal VitePress configuration file.
 - `docs/.vitepress/theme/index.ts` connects the Gentorial runtime and generator.
-- `course.config.ts` defines stable course metadata, generation mode, locale, and accuracy policies.
+- `course.config.ts` defines stable course metadata, generation mode, locale, an optional course-wide prompt, and accuracy policies.
 
 ## Write a tutorial
 

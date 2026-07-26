@@ -48,7 +48,8 @@ export const courseDefinitionSchema = z
     generation: z
       .object({
         mode: z.enum(['snapshot', 'on-demand', 'hybrid']),
-        defaultLocale: nonBlankString
+        defaultLocale: nonBlankString,
+        globalPrompt: nonBlankString.optional()
       })
       .strict(),
     rendering: z
@@ -99,12 +100,20 @@ export const sectionScopeSchema = z
   })
   .strict()
 
-export const generateTriggerSchema = z
-  .object({
-    type: z.literal('heading'),
-    source: sourceLocationSchema
-  })
-  .strict()
+export const generateTriggerSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('heading'),
+      source: sourceLocationSchema
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('source-end'),
+      source: sourceLocationSchema
+    })
+    .strict()
+])
 
 export const generateOutputSchema = z
   .object({

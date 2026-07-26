@@ -32,12 +32,17 @@ describe('compileCourseDirectory', () => {
         title: 'Fixture',
         lang: 'zh-CN',
         contentDir: 'content',
-        generation: { mode: 'snapshot', defaultLocale: 'zh-CN' },
+        generation: {
+          mode: 'snapshot',
+          defaultLocale: 'zh-CN',
+          globalPrompt: '使用循序渐进的讲解方式。'
+        },
         accuracy: { policies: [] }
       })
     })
 
     expect(result.manifest.contentHash).toMatch(/^[a-f0-9]{64}$/)
+    expect(result.manifest.course.generation.globalPrompt).toBe('使用循序渐进的讲解方式。')
     expect(result.files).toEqual(['content/index.md'])
     expect(result.diagnostics).toContainEqual(
       expect.objectContaining({ code: 'CONTENT_UNKNOWN_CONCEPT', severity: 'error' })
@@ -49,7 +54,7 @@ describe('compileCourseDirectory', () => {
         markdown: '作者限定的内容范围。',
         source: { file: 'content/index.md', line: 1 }
       },
-      trigger: { type: 'heading', source: { line: 1 } },
+      trigger: { type: 'source-end', source: { line: 5 } },
       output: { placement: 'after-source', mode: 'replace' }
     })
   })

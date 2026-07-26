@@ -47,6 +47,64 @@ function openTokenInfo(tokens: Token[], index: number): DirectiveInfo {
   return parseInfo((token?.info ?? '').trim().replace(/^(concept|generate)\s+/, ''))
 }
 
+function triggerMarkup(md: MarkdownIt, generateId: string, label: string): string {
+  return (
+    ` <GentorialGenerateTrigger generate-id="${md.utils.escapeHtml(generateId)}"` +
+    ` label="${md.utils.escapeHtml(label)}" />`
+  )
+}
+
+function precedingAuthorParagraph(
+  tokens: Token[],
+  generateIndex: number
+): { index: number; token: Token } | undefined {
+  let generateDepth = 0
+
+  for (let index = generateIndex - 1; index >= 0; index -= 1) {
+    const token = tokens[index]
+    if (!token) continue
+
+    if (token.type === 'container_generate_close') {
+      generateDepth += 1
+      continue
+    }
+    if (generateDepth > 0) {
+      if (token.type === 'container_generate_open') generateDepth -= 1
+      continue
+    }
+
+    if (token.type === 'paragraph_close') {
+      const inline = tokens[index - 1]
+      const paragraph = tokens[index - 2]
+      if (inline?.type === 'inline' && inline.children && paragraph?.type === 'paragraph_open') {
+        return { index: index - 1, token: inline }
+      }
+      return undefined
+    }
+
+    if (token.type === 'heading_close') return undefined
+    if (token.nesting === -1) continue
+    return undefined
+  }
+
+  return undefined
+}
+
+function enclosingConceptTitle(tokens: Token[], targetIndex: number): string | undefined {
+  let title: string | undefined
+
+  for (let index = 0; index <= targetIndex; index += 1) {
+    const token = tokens[index]
+    if (token?.type === 'container_concept_open') {
+      title = openTokenInfo(tokens, index).attributes.get('title')
+    } else if (token?.type === 'container_concept_close') {
+      title = undefined
+    }
+  }
+
+  return title
+}
+
 export function installGentorialMarkdown(md: MarkdownIt): void {
   const renderFence = md.renderer.rules.fence
   md.renderer.rules.fence = (tokens, index, options, environment, renderer) => {
@@ -72,28 +130,29 @@ export function installGentorialMarkdown(md: MarkdownIt): void {
     }
   })
 
-  md.core.ruler.after('inline', 'gentorial_heading_triggers', (state) => {
+  md.core.ruler.after('inline', 'gentorial_source_end_triggers', (state) => {
     const parsed = parsedSourceFromEnvironment(state.env)
     if (!parsed) return
 
-    for (const generate of parsed.generates) {
-      const headingLine = generate.trigger.source.line - 1
-      const headingIndex = state.tokens.findIndex(
-        (token) => token.type === 'heading_open' && token.map?.[0] === headingLine
-      )
-      const inline = headingIndex >= 0 ? state.tokens[headingIndex + 1] : undefined
-      if (!inline || inline.type !== 'inline' || !inline.children) {
-        throw new Error(
-          `${generate.trigger.source.file}:${generate.trigger.source.line} ` +
-            `无法把生成触发器 ${generate.id} 绑定到标题`
-        )
-      }
+    for (let index = 0; index < state.tokens.length; index += 1) {
+      const token = state.tokens[index]
+      if (token?.type !== 'container_generate_open') continue
+
+      const info = openTokenInfo(state.tokens, index)
+      const generate = parsed.generates.find((item) => item.id === info.id)
+      if (!generate) continue
+
+      const target = precedingAuthorParagraph(state.tokens, index)
+      if (!target) continue
 
       const trigger = new state.Token('html_inline', '', 0)
-      trigger.content =
-        ` <GentorialGenerateTrigger generate-id="${md.utils.escapeHtml(generate.id)}"` +
-        ` label="${md.utils.escapeHtml(generate.scope.heading)}" />`
-      inline.children.push(trigger)
+      trigger.content = triggerMarkup(
+        md,
+        generate.id,
+        enclosingConceptTitle(state.tokens, target.index) ?? generate.scope.heading
+      )
+      target.token.children?.push(trigger)
+      token.meta = { ...token.meta, gentorialTriggerInjected: true }
     }
   })
 
@@ -138,6 +197,9 @@ export function installGentorialMarkdown(md: MarkdownIt): void {
         }
       ]
       return [
+        ...(tokens[index]?.meta?.gentorialTriggerInjected
+          ? []
+          : [triggerMarkup(md, generate.id, generate.scope.heading)]),
         `<GentorialGeneratedRegion :spec="${expressionAttribute(md, generate)}"`,
         ` :concepts="${expressionAttribute(md, concepts)}"`,
         ` :fallback="${expressionAttribute(md, fallback)}">`

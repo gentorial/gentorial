@@ -474,7 +474,7 @@ export const GentorialGeneratedRegion = defineComponent({
     const runtime = inject(gentorialRuntimeKey, undefined)
     const state = computed(() => runtime?.getState(props.spec.id))
     const question = ref('')
-    const pathExpanded = ref(false)
+    const pathVisible = ref(false)
     let unregister: (() => void) | undefined
 
     if (runtime) {
@@ -527,6 +527,12 @@ export const GentorialGeneratedRegion = defineComponent({
         event.stopPropagation()
         clearQuestion(true)
       }
+    }
+
+    function hidePathAfterFocusLeaves(event: FocusEvent): void {
+      const container = event.currentTarget as HTMLElement
+      const next = event.relatedTarget
+      if (!(next instanceof Node) || !container.contains(next)) pathVisible.value = false
     }
 
     function renderConversationNode(
@@ -718,38 +724,65 @@ export const GentorialGeneratedRegion = defineComponent({
                       )
                     ]
                   : []),
-                h('div', { class: 'gentorial-conversation-path__controls' }, [
-                  h(
-                    'button',
-                    {
-                      type: 'button',
-                      class: 'gentorial-conversation-path__toggle',
-                      'aria-expanded': pathExpanded.value ? 'true' : 'false',
-                      'aria-controls': pathId,
-                      onClick: () => {
-                        pathExpanded.value = !pathExpanded.value
-                      }
-                    },
-                    [h(ListTree, { 'aria-hidden': 'true' }), h('span', '学习路径')]
-                  )
-                ]),
-                ...(pathExpanded.value && rootNode
+                ...(rootNode
                   ? [
-                      h(
-                        'nav',
-                        {
-                          id: pathId,
-                          class: 'gentorial-conversation-path',
-                          'aria-label': '学习路径'
-                        },
-                        [
-                          h(
-                            'ul',
-                            { class: 'gentorial-conversation-path__tree' },
-                            [renderConversationNode(rootNode, childrenByParent, activePath, nodeIndexes)]
-                          )
-                        ]
-                      )
+                      h('div', { class: 'gentorial-conversation-path__controls' }, [
+                        h(
+                          'div',
+                          {
+                            class: 'gentorial-conversation-path__floating',
+                            onMouseenter: () => {
+                              pathVisible.value = true
+                            },
+                            onMouseleave: () => {
+                              pathVisible.value = false
+                            },
+                            onFocusin: () => {
+                              pathVisible.value = true
+                            },
+                            onFocusout: hidePathAfterFocusLeaves
+                          },
+                          [
+                            h(
+                              'button',
+                              {
+                                type: 'button',
+                                class: 'gentorial-conversation-path__toggle',
+                                'aria-label': '学习路径',
+                                'aria-expanded': pathVisible.value ? 'true' : 'false',
+                                'aria-controls': pathId
+                              },
+                              h(ListTree, { 'aria-hidden': 'true' })
+                            ),
+                            ...(pathVisible.value
+                              ? [
+                                  h(
+                                    'nav',
+                                    {
+                                      id: pathId,
+                                      class: 'gentorial-conversation-path',
+                                      'aria-label': '学习路径'
+                                    },
+                                    [
+                                      h(
+                                        'ul',
+                                        { class: 'gentorial-conversation-path__tree' },
+                                        [
+                                          renderConversationNode(
+                                            rootNode,
+                                            childrenByParent,
+                                            activePath,
+                                            nodeIndexes
+                                          )
+                                        ]
+                                      )
+                                    ]
+                                  )
+                                ]
+                              : [])
+                          ]
+                        )
+                      ])
                     ]
                   : []),
                 h(
@@ -1198,8 +1231,8 @@ export const GentorialPreferences = defineComponent({
 
 /**
  * Compatibility wrapper for existing engines. New integrations should place
- * GentorialGenerateTrigger in the heading and GentorialGeneratedRegion after
- * the author-owned source text.
+ * GentorialGenerateTrigger at the inline end of the author-owned source and
+ * GentorialGeneratedRegion after that source.
  */
 export const GentorialGenerate = defineComponent({
   name: 'GentorialGenerate',

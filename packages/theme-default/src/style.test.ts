@@ -72,6 +72,12 @@ describe('default trigger styles', () => {
 
   it('renders the learning path as accessible points instead of cards', async () => {
     const style = await readFile(new URL('../style.css', import.meta.url), 'utf8')
+    const floatingRule = style.match(
+      /\.gentorial-conversation-path__floating\s*\{([^}]*)\}/
+    )?.[1]
+    const pathRule = style.match(
+      /\.gentorial-conversation-path\s*\{([^}]*)\}/
+    )?.[1]
     const pointRule = style.match(
       /\.gentorial-conversation-path__point\s*\{([^}]*)\}/
     )?.[1]
@@ -82,6 +88,9 @@ describe('default trigger styles', () => {
       /\.gentorial-conversation-path__tooltip\s*\{([^}]*)\}/
     )?.[1]
 
+    expect(floatingRule).toMatch(/position:\s*relative;/)
+    expect(pathRule).toMatch(/position:\s*absolute;/)
+    expect(pathRule).toMatch(/box-shadow:/)
     expect(pointRule).toMatch(/width:\s*1\.75rem;/)
     expect(pointRule).toMatch(/height:\s*1\.75rem;/)
     expect(pointRule).toMatch(/background:\s*transparent;/)

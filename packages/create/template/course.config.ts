@@ -9,6 +9,7 @@ export default defineCourse({
   generation: {
     mode: 'hybrid',
     defaultLocale: '__COURSE_LANG__'
+    // globalPrompt: 'Explain concepts clearly and progressively.'
   },
   rendering: {
     allowUnsafeHtml: __ALLOW_UNSAFE_HTML__

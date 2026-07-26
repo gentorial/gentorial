@@ -1,3 +1,4 @@
+import type { CourseDefinition } from '@gentorial/core'
 import type { CompiledPrompt, GenerationInput, PromptCompiler } from './types.js'
 
 function requiredConcepts(input: GenerationInput) {
@@ -13,6 +14,16 @@ function requiredConcepts(input: GenerationInput) {
       statement: concept.statement
     }
   })
+}
+
+export function courseGlobalPromptLines(course: CourseDefinition): string[] {
+  const globalPrompt = course.generation.globalPrompt
+  if (!globalPrompt) return []
+
+  return [
+    '以下是课程作者提供的全局提示词，适用于本课程的每次生成和后续问答：',
+    globalPrompt
+  ]
 }
 
 export function compileGenerationPrompt(input: GenerationInput): CompiledPrompt {
@@ -46,6 +57,7 @@ export function compileGenerationPrompt(input: GenerationInput): CompiledPrompt 
     schemaVersion: '1',
     system: [
       '你是 Gentorial 的受约束课程生成器。',
+      ...courseGlobalPromptLines(input.course),
       '概念原文是不可反转的教学事实；学习者偏好只能改变表达方式。',
       '只能在当前 scope 的主题与原始 Markdown 所限定的内容范围内生成。',
       '后续问答必须继承当前 scope、概念锚点和课程准确性策略；grounding.sourceIds 与 grounding.conceptIds 的规则保持不变。',

@@ -48,7 +48,7 @@ describe('installGentorialMarkdown', () => {
     const html = markdown.render([
       '## 连续范围',
       '',
-      '::: concept switch-discrete',
+      '::: concept switch-discrete title="离散分支"',
       '离散概念。',
       ':::',
       '',
@@ -58,12 +58,40 @@ describe('installGentorialMarkdown', () => {
     ].join('\n'))
 
     expect(html).toContain('<GentorialGenerateTrigger generate-id="switch-range"')
-    expect(html).toContain('label="连续范围"')
+    expect(html).toContain('label="离散分支"')
     expect(html).toContain('<GentorialGeneratedRegion')
     expect(html).toContain('&quot;id&quot;:&quot;switch-range&quot;')
     expect(html).toContain('静态回退')
-    expect(html.indexOf('GentorialGenerateTrigger')).toBeLessThan(html.indexOf('离散概念'))
+    expect(html).toContain('离散概念。 <GentorialGenerateTrigger')
+    expect(html.indexOf('离散概念')).toBeLessThan(html.indexOf('GentorialGenerateTrigger'))
+    expect(html.indexOf('GentorialGenerateTrigger')).toBeLessThan(html.indexOf('</p>'))
     expect(html.indexOf('离散概念')).toBeLessThan(html.indexOf('GentorialGeneratedRegion'))
+  })
+
+  it('keeps consecutive generation triggers at the end of the shared author paragraph', () => {
+    const markdown = new MarkdownIt()
+    installGentorialMarkdown(markdown)
+
+    const html = markdown.render([
+      '## 分支',
+      '',
+      '作者限定的内容范围。',
+      '',
+      '::: generate explain kind=explanation',
+      '解释它。',
+      ':::',
+      '',
+      '::: generate exercise kind=exercise',
+      '出一道题。',
+      ':::'
+    ].join('\n'))
+
+    const paragraphEnd = html.indexOf('</p>')
+    expect(html.indexOf('generate-id="explain"')).toBeLessThan(paragraphEnd)
+    expect(html.indexOf('generate-id="exercise"')).toBeLessThan(paragraphEnd)
+    expect(html.indexOf('作者限定的内容范围。')).toBeLessThan(
+      html.indexOf('generate-id="explain"')
+    )
   })
 
   it('keeps absolute build-machine paths out of client props', () => {
@@ -90,7 +118,7 @@ describe('installGentorialMarkdown', () => {
     expect(html).not.toContain('D:/private')
   })
 
-  it('preserves VitePress header extraction after adding heading triggers', async () => {
+  it('preserves VitePress header extraction after adding source-end triggers', async () => {
     disposeMdItInstance()
     const markdown = await createMarkdownRenderer(process.cwd(), {
       headers: true,

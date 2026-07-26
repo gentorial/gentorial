@@ -18,7 +18,8 @@ describe('defineCourse', () => {
       contentDir: 'content',
       generation: {
         mode: 'hybrid',
-        defaultLocale: 'zh-CN'
+        defaultLocale: 'zh-CN',
+        globalPrompt: '先给出结论，再循序渐进地解释。'
       },
       rendering: {
         allowUnsafeHtml: true
@@ -30,6 +31,7 @@ describe('defineCourse', () => {
     })
 
     expect(course.id).toBe('c-language')
+    expect(course.generation.globalPrompt).toBe('先给出结论，再循序渐进地解释。')
     expect(course.rendering.allowUnsafeHtml).toBe(true)
   })
 })
@@ -125,12 +127,28 @@ describe('section-scoped generation schemas', () => {
       prompt: '沿语言演化链解释 C 的形成。',
       concepts: [],
       scope,
-      trigger: { type: 'heading', source },
+      trigger: { type: 'source-end', source: { file: 'content/index.md', line: 8 } },
       output: { placement: 'after-source', mode: 'replace' },
       source: { file: 'content/index.md', line: 8 }
     })
 
     expect(generate.concepts).toEqual([])
+    expect(generate.trigger.type).toBe('source-end')
     expect(generate.output.placement).toBe('after-source')
+  })
+
+  it('continues to accept legacy heading triggers in stored manifests', () => {
+    const generate = generateSpecSchema.parse({
+      id: 'c-history',
+      kind: 'explanation',
+      prompt: '沿语言演化链解释 C 的形成。',
+      concepts: [],
+      scope,
+      trigger: { type: 'heading', source },
+      output: { placement: 'after-source', mode: 'replace' },
+      source: { file: 'content/index.md', line: 8 }
+    })
+
+    expect(generate.trigger.type).toBe('heading')
   })
 })

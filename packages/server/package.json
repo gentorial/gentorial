@@ -2,6 +2,11 @@
   "name": "@gentorial/server",
   "version": "0.2.1",
   "description": "Server-managed generation, credentials, and shared result caching for Gentorial.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gentorial/gentorial.git",
+    "directory": "packages/server"
+  },
   "type": "module",
   "sideEffects": false,
   "files": [

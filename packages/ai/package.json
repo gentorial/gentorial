@@ -2,6 +2,11 @@
   "name": "@gentorial/ai",
   "version": "0.4.1",
   "description": "Provider-neutral prompt compilation and generation pipeline for Gentorial.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gentorial/gentorial.git",
+    "directory": "packages/ai"
+  },
   "type": "module",
   "sideEffects": false,
   "files": [

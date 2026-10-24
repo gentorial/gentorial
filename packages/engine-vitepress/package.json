@@ -2,6 +2,11 @@
   "name": "@gentorial/engine-vitepress",
   "version": "0.2.1",
   "description": "VitePress engine integration for Gentorial course directives.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gentorial/gentorial.git",
+    "directory": "packages/engine-vitepress"
+  },
   "type": "module",
   "sideEffects": false,
   "files": [

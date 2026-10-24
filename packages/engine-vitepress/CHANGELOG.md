@@ -1,5 +1,19 @@
 # @gentorial/engine-vitepress
 
+## 0.2.1
+
+### Patch Changes
+
+- 放宽 peerDependencies 范围，支持 VitePress 2 与 Mermaid 12。
+
+  `vitepress` 的 peer 范围从 `^1.6.4` 改为 `^1.6.4 || ^2.0.0-alpha.1`，
+  `mermaid` 从 `^11.16.0` 改为 `^11.16.0 || ^12.0.0`。
+
+  实际使用面很小：engine 只对 vitepress 做类型导入，theme 只做类型导入，
+  两者都不直接调用 vitepress 的运行时 API；mermaid 只调用 `initialize` 和
+  `render`，这两个接口在 12 中未变。已在 VitePress 2.0.0-alpha.20 +
+  Mermaid 12.2.0 下构建 697 页并验证 11 种图表类型全部渲染。
+
 ## 0.2.0
 
 ### Minor Changes

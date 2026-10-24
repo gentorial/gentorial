@@ -1,6 +1,6 @@
 {
   "name": "@gentorial/engine-vitepress",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "VitePress engine integration for Gentorial course directives.",
   "type": "module",
   "sideEffects": false,
@@ -36,7 +36,7 @@
     "markdown-it-container": "^4.0.0"
   },
   "peerDependencies": {
-    "vitepress": "^1.6.4"
+    "vitepress": "^1.6.4 || ^2.0.0-alpha.1"
   },
   "devDependencies": {
     "@types/markdown-it": "^14.1.2",

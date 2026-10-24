@@ -3,7 +3,7 @@ name: Publish to npm
 on:
   push:
     tags:
-      - "v*"
+      - "@gentorial/*@*"
   workflow_dispatch:
     inputs:
       package:
@@ -25,8 +25,6 @@ jobs:
     environment: npm-publish
     steps:
       - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
         with:
@@ -46,12 +44,22 @@ jobs:
 
       - run: pnpm test
 
-      # Trusted publishing: npm derives a short-lived credential from the
-      # GitHub OIDC token, so no NPM_TOKEN secret and no OTP prompt.
-      - name: Publish packages
+      # Tags follow the changesets convention: "@gentorial/<pkg>@<version>".
+      - name: Resolve package from tag
         if: github.event_name == 'push'
-        run: pnpm -r --filter "./packages/*" publish --access public --no-git-checks
+        id: target
+        run: echo "name=${GITHUB_REF_NAME%@*}" >> "$GITHUB_OUTPUT"
+
+      # Trusted publishing: npm derives a short-lived credential from the
+      # GitHub OIDC token, so there is no NPM_TOKEN secret and no OTP prompt.
+      - name: Publish tagged package
+        if: github.event_name == 'push'
+        run: >-
+          pnpm --filter "${{ steps.target.outputs.name }}" publish
+          --access public --no-git-checks
 
       - name: Publish a single package
         if: github.event_name == 'workflow_dispatch'
-        run: pnpm --filter "${{ inputs.package }}" publish --access public --no-git-checks
+        run: >-
+          pnpm --filter "${{ inputs.package }}" publish
+          --access public --no-git-checks

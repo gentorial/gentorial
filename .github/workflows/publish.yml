@@ -1,0 +1,57 @@
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Package to publish (e.g. @gentorial/engine-vitepress)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write # required for npm trusted publishing (OIDC)
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.2
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+
+      - run: pnpm typecheck
+
+      - run: pnpm test
+
+      # Trusted publishing: npm derives a short-lived credential from the
+      # GitHub OIDC token, so no NPM_TOKEN secret and no OTP prompt.
+      - name: Publish packages
+        if: github.event_name == 'push'
+        run: pnpm -r --filter "./packages/*" publish --access public --no-git-checks
+
+      - name: Publish a single package
+        if: github.event_name == 'workflow_dispatch'
+        run: pnpm --filter "${{ inputs.package }}" publish --access public --no-git-checks
